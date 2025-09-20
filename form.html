@@ -1,0 +1,225 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Lab4 - form</title>
+
+  <style>
+    :root{
+      --text:#222;
+      --muted:#6b7280;
+      --border:#e5e7eb;
+      --primary:#2563eb;
+      --primary-600:#1d4ed8;
+      --danger:#ef4444;
+      --bg:#ffffff;
+      --chip:#f8fafc;
+      --radius:.5rem;
+      --container:720px;
+    }
+
+    body{
+      margin:0;
+      color:var(--text);
+      background:var(--bg);
+      min-height:100dvh;
+      display:flex;
+      align-items:flex-start;
+      justify-content:center;
+      padding:32px 16px;
+    }
+
+    .wrap{
+      width:100%;
+      max-width:var(--container);
+    }
+
+    /* 제목 */
+    h1{
+      margin:0 0 16px;
+      text-align:center;
+      font-size:clamp(22px,4vw,28px);
+      font-weight:800;
+      letter-spacing:-.015em;
+    }
+    .lead{
+      text-align:center;
+      color:var(--muted);
+      margin-bottom:24px;
+    }
+
+    /* 입력/버튼 바 */
+    .toolbar{
+      display:flex;
+      gap:8px;
+      align-items:center;
+      margin-bottom:16px;
+    }
+    .toolbar input[type="text"]{
+      flex:1;
+      padding:12px 14px;
+      border:1px solid var(--border);
+      border-radius:var(--radius);
+      font:inherit;
+      outline:none;
+    }
+    .toolbar input[type="text"]:focus{
+      border-color:#93c5fd;
+      box-shadow:0 0 0 .25rem rgba(37,99,235,.15);
+    }
+    .btn{
+      padding:11px 14px;
+      border-radius:var(--radius);
+      border:1px solid transparent;
+      font-weight:700;
+      cursor:pointer;
+      user-select:none;
+    }
+    .btn.add{
+      background:var(--primary);
+      border-color:var(--primary);
+      color:#fff;
+    }
+    .btn.add:hover{ background:var(--primary-600); border-color:var(--primary-600); }
+    .btn.clear{
+      background:#fff;
+      border-color:var(--border);
+      color:#111827;
+    }
+    .btn.clear:hover{ background:#f3f4f6; }
+
+    /* 목록 */
+    .list{
+      list-style:none;
+      margin:0;
+      padding:0;
+      border:1px solid var(--border);
+      border-radius:var(--radius);
+      min-height:56px;
+    }
+    .empty{
+      color:var(--muted);
+      padding:14px;
+      text-align:center;
+    }
+    .item{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:8px;
+      padding:12px 14px;
+      border-bottom:1px solid var(--border);
+      background:var(--chip);
+    }
+    .item:last-child{ border-bottom:none; }
+    .item span{
+      overflow:hidden;
+      text-overflow:ellipsis;
+      white-space:nowrap;
+      flex:1;
+    }
+
+    .focus-ring:focus{
+      outline: 3px solid rgba(37,99,235,.35);
+      outline-offset: 2px;
+    }
+  </style>
+</head>
+<body>
+  <main class="wrap" aria-labelledby="title">
+    <h1 id="title">동적 리스트 만들기</h1>
+    <p class="lead">아래 입력창에 텍스트를 적고 <strong>추가</strong>를 누르면 목록에 항목이 생깁니다. <strong>삭제</strong>는 목록을 모두 지웁니다.</p>
+
+    <section class="toolbar" aria-label="입력 및 동작 버튼">
+      <input id="itemInput" type="text" placeholder="항목을 입력 후 Enter 또는 ‘추가’ 버튼" class="focus-ring" />
+      <button id="addBtn" type="button" class="btn add">추가</button>
+      <button id="clearBtn" type="button" class="btn clear">삭제</button>
+    </section>
+
+    <section aria-labelledby="listTitle">
+      <h2 id="listTitle" class="sr-only" style="position:absolute;left:-9999px;">목록</h2>
+      <ul id="list" class="list" role="listbox" aria-live="polite">
+        <li class="empty" aria-hidden="true">아직 항목이 없습니다.</li>
+      </ul>
+    </section>
+  </main>
+
+  <script>
+    // 초기화 함수 (window.onload / DOMContentLoaded / readystatechange 어느 시점이든 1회만 실행)
+    let __initialized = false;
+    function init() {
+      if (__initialized) return; __initialized = true;
+
+      const input   = document.getElementById('itemInput');
+      const addBtn  = document.getElementById('addBtn');
+      const clearBtn= document.getElementById('clearBtn');
+      const list    = document.getElementById('list');
+
+      // 목록이 비었을 때의 플레이스홀더 처리
+      function ensureEmptyPlaceholder() {
+        if (list.children.length === 0) {
+          const li = document.createElement('li');
+          li.className = 'empty';
+          li.textContent = '아직 항목이 없습니다.';
+          li.setAttribute('aria-hidden','true');
+          list.appendChild(li);
+        }
+      }
+      function removeEmptyPlaceholder() {
+        const empty = list.querySelector('.empty');
+        if (empty) empty.remove();
+      }
+
+      // 항목 추가
+      function addItem() {
+        const value = input.value.trim();
+        if (!value) {
+          alert('추가할 내용을 입력하세요.');
+          input.focus();
+          return;
+        }
+        removeEmptyPlaceholder();
+
+        const li = document.createElement('li');
+        li.className = 'item';
+        const text = document.createElement('span');
+        text.textContent = value;              
+        li.appendChild(text);
+
+        list.appendChild(li);
+        input.value = '';                      
+        input.focus();
+      }
+
+      // 목록 전체 삭제
+      function clearAll() {
+        list.innerHTML = '';
+        ensureEmptyPlaceholder();
+        input.focus();
+      }
+
+      addBtn.addEventListener('click', addItem);
+      clearBtn.addEventListener('click', clearAll);
+
+      input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') addItem();
+      });
+
+
+      addBtn.addEventListener('mouseover', () => input.classList.add('focus-ring'));
+      addBtn.addEventListener('mouseout',  () => input.classList.remove('focus-ring'));
+
+      input.addEventListener('change', () => input.focus());
+
+      ensureEmptyPlaceholder();
+    }
+
+    window.onload = init;
+    document.addEventListener('DOMContentLoaded', init);
+    document.addEventListener('readystatechange', () => {
+      if (document.readyState === 'complete') init();
+    });
+  </script>
+</body>
+</html>
